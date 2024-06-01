@@ -1,67 +1,53 @@
-import * as d3 from "d3";
+// Wait for the DOM content to be fully loaded before executing the script
+document.addEventListener('DOMContentLoaded', () => {
+    // Get the file input element and the output div
+    const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+    const output = document.getElementById('output');
 
-interface ProfileKey {
-    [key: string]: string;
-}
+    // Add an event listener to handle file selection
+    fileInput.addEventListener('change', (event: Event) => {
+        // Get the selected file
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (file) {
+            // Create a FileReader to read the file content
+            const reader = new FileReader();
+            reader.onload = (e: ProgressEvent<FileReader>) => {
+                // Get the content of the file
+                const content = e.target?.result as string;
+                // Parse the Lua file content
+                const parsedData = parseLuaFile(content);
+                // Display the parsed data
+                displayData(parsedData);
+            };
+            // Read the file as text
+            reader.readAsText(file);
+        }
+    });
 
-interface Craft {
-    [key: string]: any;
-}
-
-interface Character {
-    Professions: { [key: string]: any };
-    lastUpdate: number;
-    Prof1: string;
-    Prof2: string;
-}
-
-interface Global {
-    Characters: { [key: string]: Character };
-}
-
-interface DataStore {
-    profileKeys: ProfileKey;
-    global: Global;
-}
-
-const fileInput = document.getElementById('fileInput') as HTMLInputElement;
-const output = document.getElementById('output') as HTMLDivElement;
-
-fileInput.addEventListener('change', handleFileUpload);
-
-function handleFileUpload(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const text = e.target?.result as string;
-            const data = parseLuaFile(text);
-            visualizeData(data);
-        };
-        reader.readAsText(file);
+    // Function to parse the Lua file content
+    function parseLuaFile(content: string): any {
+        // Initialize an empty object to store the parsed data
+        const data = {} as any;
+        // Split the content into lines
+        const lines = content.split('\n');
+        // Iterate through each line
+        lines.forEach(line => {
+            // Use a regular expression to extract key-value pairs
+            const match = line.match(/(\w+)\s*=\s*(.+)/);
+            if (match) {
+                // Store the key-value pair in the data object
+                data[match[1]] = match[2];
+            }
+        });
+        // Return the parsed data
+        return data;
     }
-}
 
-function parseLuaFile(luaText: string): DataStore {
-    const luaData = luaText.substring(luaText.indexOf('{'), luaText.lastIndexOf('}') + 1);
-    const jsonData = JSON.parse(luaData.replace(/--\s\[\d+\]/g, '').replace(/,\s*$/, ''));
-    return jsonData;
-}
-
-function visualizeData(data: DataStore): void {
-    output.innerHTML = '';
-    const characters = Object.entries(data.global.Characters);
-    
-    const svg = d3.select(output)
-        .append('svg')
-        .attr('width', 600)
-        .attr('height', characters.length * 30);
-
-    svg.selectAll('text')
-        .data(characters)
-        .enter()
-        .append('text')
-        .attr('x', 10)
-        .attr('y', (d, i) => (i + 1) * 25)
-        .text(d => `${d[0]}: ${JSON.stringify(d[1].Professions, null, 2)}`);
-}
+    // Function to display the parsed data
+    function displayData(data: any) {
+        if (output) {
+            // Convert the data object to a JSON string and display it
+            output.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+    }
+});
