@@ -1,0 +1,21 @@
+{
+  "name": "lua-parser",
+  "version": "1.0.0",
+  "description": "A website that parses Lua files and visualizes the data",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack"
+  },
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^4.4.4",
+    "ts-loader": "^9.2.6",
+    "webpack": "^5.64.1",
+    "webpack-cli": "^4.9.1"
+  },
+  "dependencies": {
+    "d3": "^7.0.0",
+    "@types/d3": "^7.0.0"
+  }
+}
