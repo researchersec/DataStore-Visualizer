@@ -1,4 +1,5 @@
-import luaparse from 'luaparse';
+import * as luaparse from 'luaparse';
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('fileInput') as HTMLInputElement;
