@@ -1,3 +1,5 @@
+import luaparse from 'luaparse';
+
 document.addEventListener('DOMContentLoaded', () => {
     const fileInput = document.getElementById('fileInput') as HTMLInputElement;
     const output = document.getElementById('output');
@@ -8,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Override the default console.log
     (function () {
         const oldLog = console.log;
         console.log = function (...args: any[]) {
@@ -55,15 +56,35 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function parseLuaFile(content: string): any {
-        const data: { [key: string]: string } = {};
-        const lines = content.split('\n');
-        lines.forEach(line => {
-            const match = line.match(/(\w+)\s*=\s*(.+)/);
-            if (match) {
-                data[match[1]] = match[2];
-                console.log(`Parsed line: ${line}`);
+        const ast = luaparse.parse(content);
+        const data: { [key: string]: any } = {};
+
+        function traverse(node: any, parent: any = null) {
+            if (node.type === 'AssignmentStatement') {
+                node.variables.forEach((variable: any, index: number) => {
+                    const value = node.init[index];
+                    if (variable.type === 'Identifier' && value.type === 'TableConstructorExpression') {
+                        data[variable.name] = parseTable(value);
+                    }
+                });
+            } else if (node.body) {
+                node.body.forEach((childNode: any) => traverse(childNode, node));
             }
-        });
+        }
+
+        function parseTable(node: any): any {
+            const tableData: any = {};
+            node.fields.forEach((field: any) => {
+                if (field.type === 'TableKeyString') {
+                    tableData[field.key.name] = field.value.raw || parseTable(field.value);
+                } else if (field.type === 'TableValue') {
+                    tableData.push(field.value.raw || parseTable(field.value));
+                }
+            });
+            return tableData;
+        }
+
+        traverse(ast);
         return data;
     }
 
