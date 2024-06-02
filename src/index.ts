@@ -31,4 +31,48 @@ document.addEventListener('DOMContentLoaded', () => {
             const maxSize = 10 * 1024 * 1024; // 10 MB
             if (file.size > maxSize) {
                 output.innerHTML = 'File is too large.';
-                console.log('File size e
+                console.log('File size exceeds the limit.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e: ProgressEvent<FileReader>) => {
+                try {
+                    const content = e.target?.result as string;
+                    const parsedData = parseLuaFile(content);
+                    displayData(parsedData);
+                } catch (err) {
+                    output.innerHTML = 'Error reading file.';
+                    console.log('Error reading file:', err);
+                }
+            };
+            reader.onerror = () => {
+                output.innerHTML = 'Error reading file.';
+                console.log('Error occurred while reading the file.');
+            };
+            reader.readAsText(file);
+        }
+    });
+
+    function parseLuaFile(content: string): any {
+        const data: { [key: string]: string } = {};
+        const lines = content.split('\n');
+        lines.forEach(line => {
+            const match = line.match(/(\w+)\s*=\s*(.+)/);
+            if (match) {
+                data[match[1]] = match[2];
+                console.log(`Parsed line: ${line}`);
+            }
+        });
+        return data;
+    }
+
+    function displayData(data: any) {
+        if (output) {
+            output.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            console.log('Displayed parsed data.');
+        } else {
+            console.log('Output element is null.');
+        }
+    }
+});
