@@ -1,53 +1,74 @@
-// Wait for the DOM content to be fully loaded before executing the script
 document.addEventListener('DOMContentLoaded', () => {
-    // Get the file input element and the output div
     const fileInput = document.getElementById('fileInput') as HTMLInputElement;
     const output = document.getElementById('output');
+    const consoleOutput = document.getElementById('consoleOutput');
 
-    // Add an event listener to handle file selection
+    if (!fileInput || !output || !consoleOutput) {
+        console.error("Elements not found");
+        return;
+    }
+
+    // Override the default console.log
+    (function () {
+        const oldLog = console.log;
+        console.log = function (message) {
+            oldLog.apply(console, arguments);
+            const logMessage = document.createElement('div');
+            logMessage.textContent = message;
+            consoleOutput.appendChild(logMessage);
+        };
+    })();
+
     fileInput.addEventListener('change', (event: Event) => {
-        // Get the selected file
         const file = (event.target as HTMLInputElement).files?.[0];
         if (file) {
-            // Create a FileReader to read the file content
+            if (!file.type.startsWith('text/')) {
+                output.innerHTML = 'Please upload a valid text file.';
+                console.log('Invalid file type selected.');
+                return;
+            }
+
+            const maxSize = 10 * 1024 * 1024; // 10 MB
+            if (file.size > maxSize) {
+                output.innerHTML = 'File is too large.';
+                console.log('File size exceeds the limit.');
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = (e: ProgressEvent<FileReader>) => {
-                // Get the content of the file
-                const content = e.target?.result as string;
-                // Parse the Lua file content
-                const parsedData = parseLuaFile(content);
-                // Display the parsed data
-                displayData(parsedData);
+                try {
+                    const content = e.target?.result as string;
+                    const parsedData = parseLuaFile(content);
+                    displayData(parsedData);
+                } catch (err) {
+                    output.innerHTML = 'Error reading file.';
+                    console.log('Error reading file:', err);
+                }
             };
-            // Read the file as text
+            reader.onerror = () => {
+                output.innerHTML = 'Error reading file.';
+                console.log('Error occurred while reading the file.');
+            };
             reader.readAsText(file);
         }
     });
 
-    // Function to parse the Lua file content
     function parseLuaFile(content: string): any {
-        // Initialize an empty object to store the parsed data
-        const data = {} as any;
-        // Split the content into lines
+        const data: { [key: string]: string } = {};
         const lines = content.split('\n');
-        // Iterate through each line
         lines.forEach(line => {
-            // Use a regular expression to extract key-value pairs
             const match = line.match(/(\w+)\s*=\s*(.+)/);
             if (match) {
-                // Store the key-value pair in the data object
                 data[match[1]] = match[2];
+                console.log(`Parsed line: ${line}`);
             }
         });
-        // Return the parsed data
         return data;
     }
 
-    // Function to display the parsed data
     function displayData(data: any) {
-        if (output) {
-            // Convert the data object to a JSON string and display it
-            output.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
-        }
+        output.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        console.log('Displayed parsed data.');
     }
 });
